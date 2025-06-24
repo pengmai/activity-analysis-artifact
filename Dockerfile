@@ -1,10 +1,6 @@
-ARG LLVM_VERSION=20
-
 FROM nvidia/cuda:12.6.3-devel-ubuntu24.04
 
 ARG USERNAME=evaluator
-ARG USER_UID=1000
-ARG USER_GID=$USER_UID
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV HOME=/home/$USERNAME
@@ -16,8 +12,13 @@ RUN groupadd -r $USERNAME && \
 
 RUN apt-get -q update \
   && apt-get install -y --no-install-recommends ca-certificates software-properties-common curl gnupg2 \
-    cmake gcc g++ ninja-build git time sudo
-  # && echo $USERNAME ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/$USERNAME \
-  # && chmod 0440 /etc/sudoers.d/$USERNAME
+    cmake gcc g++ clang lld python3-venv python3-pip ninja-build git time sudo
+
+RUN echo $USERNAME ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/$USERNAME \
+  && chmod 0440 /etc/sudoers.d/$USERNAME
+
+COPY . $HOME
+
+RUN echo "Building LLVM and Enzyme" && ./build.sh
 
 USER $USERNAME
