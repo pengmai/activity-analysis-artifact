@@ -4,6 +4,8 @@ from cpu.lstm.build import configure_lstm
 from cpu.hand.build import configure_hand
 from cpu.gmm.build import configure_gmm
 
+from gpu.xsbench.build import configure_xsbench
+
 from ninjawrap import NWrapWriter
 
 
@@ -23,6 +25,7 @@ def build_all():
             ("lstm", configure_lstm),
             ("hand", configure_hand),
             ("gmm", configure_gmm),
+            ("xsbench", configure_xsbench),
         ]:
             configure(
                 writer,

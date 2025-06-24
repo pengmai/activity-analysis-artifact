@@ -227,12 +227,14 @@ class NWrapWriter:
             variables={"cflags": " ".join(ldflags), "cc": CLANG},
         )
 
-    def compile_cuda(self, inputs: list[pathlib.Path], cflags: list[str] = []):
+    def compile_cuda(
+        self, inputs: list[pathlib.Path], prefix="", cflags: list[str] = []
+    ):
         results = []
         flags = ["-c", "--cuda-path=/usr/local/cuda-12.6", "--cuda-gpu-arch=sm_60"]
         diff_flags = ["-Rpass=enzyme", "-Xclang", "-load", "-Xclang", CLANG_ENZYME]
         for input_file in inputs:
-            stem = input_file.stem
+            stem = prefix + input_file.stem
             input_file = str(input_file)
 
             result = f"{stem}.o"
@@ -254,6 +256,7 @@ class NWrapWriter:
         self,
         inputs: list[pathlib.Path],
         cflags: list[str],
+        prefix="",
         dflags: list[str] = [],
         public_symbols: list[str] = [],
         use_mlir=False,
@@ -274,7 +277,7 @@ class NWrapWriter:
 
         results = []
         for input_file in inputs:
-            stem = input_file.stem
+            stem = prefix + input_file.stem
             input_file = str(input_file)
 
             clang_flags = []
