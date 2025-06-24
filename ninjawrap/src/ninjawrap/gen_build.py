@@ -1,13 +1,16 @@
 import pathlib
 import subprocess
+import os
 from io import TextIOWrapper
 
 from . import ninja_syntax
 
 LLVM_VER = 20
-LLVM_BUILD_DIR = pathlib.Path.home() / "llvm-project" / "build"
+HOME = pathlib.Path(os.environ["WORKDIR"])
+LLVM_BUILD_DIR = HOME / "llvm-project" / "build"
 
-ENZYME_BUILD_DIR = pathlib.Path.home() / "Enzyme" / "build"
+ENZYME_BUILD_DIR = HOME / "Enzyme" / "build"
+print("Using Enzyme build dir", ENZYME_BUILD_DIR)
 ENZYME_DYLIB = str(ENZYME_BUILD_DIR / "Enzyme" / f"LLVMEnzyme-{LLVM_VER}.so")
 CLANG_ENZYME = str(ENZYME_BUILD_DIR / "Enzyme" / f"ClangEnzyme-{LLVM_VER}.so")
 ENZYME_MLIR_OPT = str(ENZYME_BUILD_DIR / "Enzyme" / "MLIR" / "enzymemlir-opt")
@@ -27,7 +30,9 @@ MLIR_TRANSLATE = str(LLVM_BUILD_DIR / "bin" / "mlir-translate")
 OPT = str(LLVM_BUILD_DIR / "bin" / "opt")
 
 
-def abs_glob(pattern: str):
+def abs_glob(pattern):
+    if isinstance(pattern, pathlib.Path):
+        return [pattern.absolute()]
     return [p.absolute() for p in pathlib.Path().glob(pattern)]
 
 
@@ -36,6 +41,12 @@ class NWrapWriter:
         self.writer = ninja_syntax.Writer(output)
         self.build_dir = build_dir
         self.emit_rules()
+        self._cache = set()
+
+    def build(self, key, *args, **kwargs):
+        if key not in self._cache:
+            self.writer.build(key, *args, **kwargs)
+            self._cache.add(key)
 
     def emit_rules(self):
         writer = self.writer
@@ -91,14 +102,14 @@ class NWrapWriter:
             "nvcc $in -o $out $ldflags -arch=$sm_ver -lcudart -lcudart_static -lcudadevrt",
         )
 
-    def compile_c(self, inputs: list[pathlib.Path], cflags: list[str] = []):
+    def compile_c(self, inputs: list[pathlib.Path], prefix="", cflags: list[str] = []):
         results = []
         for input_file in inputs:
-            stem = input_file.stem
+            stem = prefix + input_file.stem
             input_file = str(input_file)
 
             result = f"{stem}.o"
-            self.writer.build(
+            self.build(
                 f"{stem}.o",
                 "cc",
                 input_file,
@@ -113,6 +124,7 @@ class NWrapWriter:
         cflags: list[str],
         dflags: list[str] = [],
         public_symbols: list[str] = [],
+        prefix="",
         mlir=True,
         dataflow=True,
         relative=True,
@@ -126,10 +138,10 @@ class NWrapWriter:
         c_compiler = cc or CLANG
         results = []
         for input_file in inputs:
-            stem = input_file.stem
+            stem = prefix + input_file.stem
             input_file = str(input_file)
 
-            writer.build(
+            self.build(
                 f"{stem}.ll",
                 "cc",
                 input_file,
@@ -139,7 +151,7 @@ class NWrapWriter:
                 },
             )
             if dataflow:
-                writer.build(
+                self.build(
                     f"{stem}.mlir",
                     "raisemlir",
                     f"{stem}.ll",
@@ -147,7 +159,7 @@ class NWrapWriter:
                 )
                 should_privatize = len(public_symbols) != 0
                 if should_privatize:
-                    writer.build(
+                    self.build(
                         f"{stem}.private.mlir",
                         "mliropt",
                         f"{stem}.mlir",
@@ -161,7 +173,7 @@ class NWrapWriter:
                 optflags = ["infer", "annotate"]
                 if relative:
                     optflags += ["relative"]
-                writer.build(
+                self.build(
                     f"{stem}.analyzed.mlir",
                     "emliropt",
                     privatized,
@@ -169,7 +181,7 @@ class NWrapWriter:
                         "optflags": f"-print-activity-analysis='{' '.join(optflags)}'"
                     },
                 )
-                writer.build(
+                self.build(
                     f"{stem}.lower.ll",
                     "lowermlir",
                     f"{stem}.analyzed.mlir",
@@ -177,7 +189,7 @@ class NWrapWriter:
                 )
             lowered = f"{stem}.lower.ll" if dataflow else f"{stem}.ll"
             differentiated = f"{stem}.diff.ll"
-            writer.build(
+            self.build(
                 differentiated,
                 "enzymead",
                 lowered,
@@ -185,7 +197,7 @@ class NWrapWriter:
                 variables={"dflags": " ".join(dflags)},
             )
             if dce_func:
-                writer.build(
+                self.build(
                     f"{stem}.dce.ll",
                     "opt",
                     differentiated,
@@ -198,7 +210,7 @@ class NWrapWriter:
                 )
                 differentiated = f"{stem}.dce.ll"
             final_flags = ["-c", "-O3"]
-            writer.build(
+            self.build(
                 f"{stem}.o",
                 "cc",
                 differentiated,
@@ -370,5 +382,5 @@ class NWrapWriter:
             results.extend([f"{stem}_host.o", f"{stem}_dlink.o"])
         return results
 
-    def build(self):
-        subprocess.run(["ninja", "-C", self.build_dir], check=True)
+    # def build(self):
+    #     subprocess.run(["ninja", "-C", self.build_dir], check=True)

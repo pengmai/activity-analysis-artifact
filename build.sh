@@ -1,4 +1,5 @@
 # sudo chown `whoami` -R .
+# sudo chown `whoami` -R build
 
 # Build LLVM
 mkdir llvm-project/build && cd llvm-project/build
