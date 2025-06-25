@@ -20,11 +20,27 @@ RUN echo $USERNAME ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/$USERNAME \
 
 COPY . $HOME
 
-RUN echo "Building LLVM and Enzyme" && ./build.sh
+# Build Clang and MLIR
+RUN mkdir llvm-project/build && cd llvm-project/build \
+  && cmake ../llvm -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=clang-18 -DCMAKE_CXX_COMPILER=clang++-18 -DLLVM_ENABLE_PROJECTS='clang;mlir' -DLLVM_BUILD_EXAMPLES=OFF -DLLVM_TARGETS_TO_BUILD="Native;NVPTX" -DLLVM_ENABLE_LLD=ON \
+  && ninja \
+  && cd ../..
 
-RUN python3 -m venv eval-env \
-  && source eval-env/bin/activate \
-  && pip install -r requirements.pip \
+# Build Enzyme
+RUN mkdir Enzyme/build && cd Enzyme/build \
+  && cmake ../enzyme -G Ninja -DLLVM_DIR=$HOME/llvm-project/build/lib/cmake/llvm -DENZYME_MLIR=ON \
+  && ninja \
+  && cd ../..
+
+RUN python3 -m venv eval-env
+
+ENV PATH="$HOME/eval-env/bin:$PATH"
+
+RUN pip install -r requirements.txt \
   && pip install -e ./ninjawrap
+
+# Build benchmarks
+RUN mkdir build \
+  && python main.py && ninja -C build
 
 USER $USERNAME
