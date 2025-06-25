@@ -1,6 +1,0 @@
-[submodule "llvm-project"]
-	path = llvm-project
-	url = https://github.com/pengmai/llvm-project
-[submodule "Enzyme"]
-	path = Enzyme
-	url = https://github.com/EnzymeAD/Enzyme

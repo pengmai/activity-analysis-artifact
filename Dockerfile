@@ -18,15 +18,19 @@ RUN apt-get -q update \
 RUN echo $USERNAME ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/$USERNAME \
   && chmod 0440 /etc/sudoers.d/$USERNAME
 
-COPY . $HOME
-
 # Build Clang and MLIR
+RUN git clone https://github.com/pengmai/llvm-project.git --depth 1 --branch jmp/stable
+
 RUN mkdir llvm-project/build && cd llvm-project/build \
   && cmake ../llvm -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=clang-18 -DCMAKE_CXX_COMPILER=clang++-18 -DLLVM_ENABLE_PROJECTS='clang;mlir' -DLLVM_BUILD_EXAMPLES=OFF -DLLVM_TARGETS_TO_BUILD="Native;NVPTX" -DLLVM_ENABLE_LLD=ON \
   && ninja \
   && cd ../..
 
 # Build Enzyme
+RUN git clone https://github.com/EnzymeAD/Enzyme.git \
+  && cd Enzyme \
+  && git checkout 20cb61f
+
 RUN mkdir Enzyme/build && cd Enzyme/build \
   && cmake ../enzyme -G Ninja -DLLVM_DIR=$HOME/llvm-project/build/lib/cmake/llvm -DENZYME_MLIR=ON \
   && ninja \
@@ -35,6 +39,8 @@ RUN mkdir Enzyme/build && cd Enzyme/build \
 RUN python3 -m venv eval-env
 
 ENV PATH="$HOME/eval-env/bin:$PATH"
+
+COPY . $HOME
 
 RUN pip install -r requirements.txt \
   && pip install -e ./ninjawrap
