@@ -1,0 +1,7 @@
+nvidia-profile-runs/
+__pycache__/
+*.o
+build/
+lulesh
+xyz.asc
+

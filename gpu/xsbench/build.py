@@ -18,13 +18,10 @@ def configure_xsbench(
     inputs = abs_glob(SOURCE_DIR / "Simulation.cu")
 
     flags = [
-        # "-I",
-        # str(pathlib.Path(__file__).parent.absolute()),
         "-DNDEBUG",
         "-fno-exceptions",
         "--cuda-path=/usr/local/cuda-12.6",
         "--cuda-gpu-arch=sm_60",
-        # "--no-cuda-version-check",
         f"-DALL_ACTIVE={int(all_active)}",
         "-O3",
     ]

@@ -40,7 +40,8 @@ RUN pip install -r requirements.txt \
   && pip install -e ./ninjawrap
 
 # Build benchmarks
-RUN mkdir build \
-  && python main.py && ninja -C build
+RUN mkdir build && python main.py && ninja -C build
+# LULESH and LBM write their outputs to files. The enclosing directories must be owned by the user.
+RUN chown $USERNAME -R cpu gpu build && chown $USERNAME .
 
 USER $USERNAME
