@@ -44,7 +44,7 @@ def build_all():
             configure(
                 writer,
                 stem,
-                prefix=f"relative/",
+                prefix=f"relative/{stem}/",
                 all_active=False,
                 dataflow=True,
                 whole_program=False,
@@ -53,7 +53,7 @@ def build_all():
             configure(
                 writer,
                 stem,
-                prefix=f"informal/",
+                prefix=f"informal/{stem}/",
                 all_active=False,
                 dataflow=False,
                 whole_program=False,
@@ -62,7 +62,7 @@ def build_all():
             configure(
                 writer,
                 stem,
-                prefix=f"gdce/",
+                prefix=f"gdce/{stem}/",
                 all_active=False,
                 dataflow=False,
                 whole_program=False,
@@ -71,7 +71,7 @@ def build_all():
             configure(
                 writer,
                 stem,
-                prefix=f"whole_program/",
+                prefix=f"whole_program/{stem}/",
                 all_active=False,
                 dataflow=True,
                 whole_program=True,
@@ -80,7 +80,7 @@ def build_all():
             configure(
                 writer,
                 stem,
-                prefix=f"all_active/",
+                prefix=f"all_active/{stem}/",
                 all_active=True,
                 dataflow=False,
                 whole_program=False,
