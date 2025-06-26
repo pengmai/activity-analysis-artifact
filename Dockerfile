@@ -43,12 +43,12 @@ ENV PATH="$HOME/eval-env/bin:$PATH"
 
 COPY . $HOME
 
-RUN pip install numpy==1.26.4 pandas==2.2.2 matplotlib==3.9.1.post1
+RUN pip install numpy==1.26.4 pandas==2.2.2 matplotlib==3.9.1.post1 tqdm==4.67.1
 RUN pip install -e ./ninjawrap
 
 # Build benchmarks
 RUN mkdir build && python main.py && ninja -C build
 # LULESH and LBM write their outputs to files. The enclosing directories must be owned by the user.
-RUN chown $USERNAME -R cpu gpu build && chown $USERNAME .
+RUN chown $USERNAME -R cpu gpu build .cache && chown $USERNAME .
 
 USER $USERNAME

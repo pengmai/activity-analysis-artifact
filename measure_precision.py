@@ -4,10 +4,13 @@ import pandas as pd
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
+from tqdm import tqdm
 
 import pathlib
 import subprocess
 import re
+
+from plotting import get_colormap, plot_precision
 
 BENCH_BUILD_DIR = pathlib.Path(HOME) / "build"
 gpu_ir_files = {
@@ -87,100 +90,33 @@ def get_precision(llvm_file: str):
     return float(m.group(1))
 
 
-def collect_precisions_for_dict(ir_files_dict):
+def collect_precisions_for_dict(ir_files_dict, show_progress=False):
+    items = ir_files_dict.items()
+    if show_progress:
+        items = tqdm(items)
+
     return {
         bench: {
             variant: get_precision(BENCH_BUILD_DIR / llvm_file)
             for variant, llvm_file in inner_dict.items()
         }
-        for bench, inner_dict in ir_files_dict.items()
+        for bench, inner_dict in items
     }
 
 
-def get_colormap():
-    # colorblind-friendly color map taken from https://personal.sron.nl/~pault/
-    # rgb_colors = [[68,119,170], [102,204,238], [34,136,51], [204,187,68], [238,102,119], [170,51,119], [187,187,187]]
-    # re-ordered colors to group the whole-program/func. summaries variants together
-    rgb_colors = [
-        [238, 102, 119],
-        [68, 119, 170],
-        [102, 204, 238],
-        [204, 187, 68],
-        [34, 136, 51],
-        [238, 102, 119],
-        [170, 51, 119],
-        [187, 187, 187],
-    ]
-    rgba_colors = [x + [256] for x in rgb_colors]
-    rgba_colors_norm = np.vstack(np.array([np.array(x) / 256.0 for x in rgba_colors]))
-    colormap = matplotlib.colors.ListedColormap(rgba_colors_norm)
-    return colormap
-
-
-def plot_p(p, ax, cmap):
-    ez = p.reset_index()["Enz"] * 100.0
-    wp = p.reset_index()["WP"] * 100.0
-    fs = p.reset_index()["FS"] * 100.0
-    width = 0.5
-    offset = 0.03
-    ez_xs = np.arange(len(wp)) * 3 - width - offset
-    wp_xs = np.arange(len(wp)) * 3
-    fs_xs = np.arange(len(wp)) * 3 + width + offset
-    ax.bar(
-        ez_xs,
-        ez,
-        zorder=3,
-        width=width,
-        edgecolor="#444",
-        label="Informal",
-        color=cmap(0),
+def main(args):
+    gpu_precision_results = pd.DataFrame(
+        collect_precisions_for_dict(gpu_ir_files, show_progress=args.show_progress)
+    ).T
+    cpu_precision_results = pd.DataFrame(
+        collect_precisions_for_dict(cpu_ir_files, show_progress=args.show_progress)
+    ).T
+    plot_precision(
+        cpu_precision_results, gpu_precision_results, "activity_precision.pdf"
     )
-    ax.bar(
-        wp_xs,
-        wp,
-        zorder=3,
-        width=width,
-        edgecolor="#444",
-        label="Whole Program",
-        color=cmap(1),
-    )
-    ax.bar(
-        fs_xs,
-        fs,
-        zorder=3,
-        width=width,
-        edgecolor="#444",
-        label="Func. Summaries",
-        color=cmap(2),
-    )
-    ax.grid(axis="y", zorder=1)
-    ax.set_yticks(np.arange(0, 101, 25), np.arange(0, 101, 25))
-    ax.set_xticks(np.arange(len(p.index)) * 3.0, p.index)
-
-
-def plot_precision(cpu_precision_results, gpu_precision_results, output: str):
-    (fig, (ax1, ax2)) = plt.subplots(ncols=2, width_ratios=[0.55, 0.45])
-    ax1.set_ylabel("Inactive Instructions (%)")
-    ax1.set_title("CPU")
-    ax2.set_title("GPU")
-    fig.set_size_inches(9, 2.2)
-    cmap = get_colormap()
-    plot_p(cpu_precision_results, ax1, cmap)
-    plot_p(gpu_precision_results, ax2, cmap)
-    handles, labels = ax1.get_legend_handles_labels()
-    fig.legend(
-        handles,
-        labels,
-        loc="lower center",
-        bbox_to_anchor=(0.5, -0.07),
-        ncols=3,
-        frameon=False,
-    )
-    fig.tight_layout()
-    plt.savefig(output, bbox_inches="tight")
 
 
 if __name__ == "__main__":
-    gpu_precision_results = pd.DataFrame(collect_precisions_for_dict(gpu_ir_files)).T
-    cpu_precision_results = pd.DataFrame(collect_precisions_for_dict(cpu_ir_files)).T
-    plot_precision(cpu_precision_results, gpu_precision_results, "activity_precision.pdf")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--show-progress", action="store_true")
+    main(parser.parse_args())

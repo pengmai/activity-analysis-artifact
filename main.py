@@ -63,10 +63,10 @@ def build_all():
                 writer,
                 stem,
                 prefix=f"gdce/{stem}/",
-                all_active=False,
+                all_active=True,
                 dataflow=False,
                 whole_program=False,
-                custom_dce=False,
+                custom_dce=True,
             )
             configure(
                 writer,

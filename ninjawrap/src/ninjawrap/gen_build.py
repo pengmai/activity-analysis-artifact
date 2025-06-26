@@ -6,7 +6,7 @@ from io import TextIOWrapper
 from . import ninja_syntax
 
 LLVM_VER = 20
-HOME = pathlib.Path(os.environ["WORKDIR"])
+HOME = pathlib.Path(os.getenv("WORKDIR", str(pathlib.Path.home())))
 LLVM_BUILD_DIR = pathlib.Path(
     os.getenv("LLVM_DIR", str(HOME / "llvm-project" / "build"))
 )
@@ -204,7 +204,7 @@ class NWrapWriter:
                     variables=[
                         (
                             "optflags",
-                            f"-load-pass-plugin=$enzyme_lib -passes='custom-dce' -custom-dce-func={dce_func} -custom-dce-indices={dce_indices}",
+                            f"-load-pass-plugin=$enzyme_lib -passes='custom-dce' -custom-dce-func={dce_func} -custom-dce-indices={dce_indices} -S",
                         )
                     ],
                 )
