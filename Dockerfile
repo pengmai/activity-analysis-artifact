@@ -29,7 +29,7 @@ RUN mkdir llvm-project/build && cd llvm-project/build \
 # Build Enzyme
 RUN git clone https://github.com/EnzymeAD/Enzyme.git \
   && cd Enzyme \
-  && git checkout 20cb61f
+  && git checkout e461cbb
 
 RUN mkdir Enzyme/build && cd Enzyme/build \
   && cmake ../enzyme -G Ninja -DLLVM_DIR=$HOME/llvm-project/build/lib/cmake/llvm -DENZYME_MLIR=ON \
