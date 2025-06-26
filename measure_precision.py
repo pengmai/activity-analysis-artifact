@@ -92,5 +92,5 @@ def collect_precisions_for_dict(ir_files_dict):
     }
 
 
-print(collect_precisions_for_dict(cpu_ir_files))
-# print(collect_precisions_for_dict(gpu_ir_files))
+# print(collect_precisions_for_dict(cpu_ir_files))
+print(collect_precisions_for_dict(gpu_ir_files))

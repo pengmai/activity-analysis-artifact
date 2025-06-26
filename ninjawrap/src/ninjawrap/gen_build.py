@@ -7,10 +7,10 @@ from . import ninja_syntax
 
 LLVM_VER = 20
 HOME = pathlib.Path(os.environ["WORKDIR"])
-LLVM_BUILD_DIR = HOME / "llvm-project" / "build"
-
-ENZYME_BUILD_DIR = HOME / "Enzyme" / "build"
-print("Using Enzyme build dir", ENZYME_BUILD_DIR)
+LLVM_BUILD_DIR = pathlib.Path(
+    os.getenv("LLVM_DIR", str(HOME / "llvm-project" / "build"))
+)
+ENZYME_BUILD_DIR = pathlib.Path(os.getenv("ENZYME_DIR", str(HOME / "Enzyme" / "build")))
 ENZYME_DYLIB = str(ENZYME_BUILD_DIR / "Enzyme" / f"LLVMEnzyme-{LLVM_VER}.so")
 CLANG_ENZYME = str(ENZYME_BUILD_DIR / "Enzyme" / f"ClangEnzyme-{LLVM_VER}.so")
 ENZYME_MLIR_OPT = str(ENZYME_BUILD_DIR / "Enzyme" / "MLIR" / "enzymemlir-opt")
@@ -262,6 +262,7 @@ class NWrapWriter:
         use_mlir=False,
         dataflow=False,
         relative=True,
+        force_intraproc=False,
         emit_clang_enzyme=True,
         clang_ad=False,
         dce_func=None,
@@ -272,6 +273,8 @@ class NWrapWriter:
             raise ValueError("must specify both dce_func and dce_indices")
         if dataflow and not use_mlir:
             raise ValueError("cannot use dataflow without mlir")
+        if force_intraproc and relative:
+            raise ValueError("force_intraproc has no effect on relative analysis")
         if clang_ad and emit_clang_enzyme:
             raise ValueError("clang_ad and emit_clang enzyme cannot both be set")
 
@@ -333,6 +336,8 @@ class NWrapWriter:
                     optflags = ["infer", "annotate"]
                     if relative:
                         optflags += ["relative"]
+                    if force_intraproc:
+                        optflags += ["intraproc"]
                     writer.build(
                         f"{stem}.analyzed.mlir",
                         "emliropt",

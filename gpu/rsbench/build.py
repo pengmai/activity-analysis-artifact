@@ -54,6 +54,7 @@ def configure_rsbench(
         emit_clang_enzyme=True,
         clang_ad=False,
         relative=not whole_program,
+        force_intraproc=whole_program,
         dce_func=dce_func,
         dce_indices=dce_indices,
     )

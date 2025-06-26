@@ -29,7 +29,7 @@ RUN mkdir llvm-project/build && cd llvm-project/build \
 # Build Enzyme
 RUN git clone https://github.com/EnzymeAD/Enzyme.git \
   && cd Enzyme \
-  && git checkout e461cbb
+  && git checkout a8a8dac
 
 RUN mkdir Enzyme/build && cd Enzyme/build \
   && cmake ../enzyme -G Ninja -DLLVM_DIR=$HOME/llvm-project/build/lib/cmake/llvm -DENZYME_MLIR=ON \
@@ -38,12 +38,13 @@ RUN mkdir Enzyme/build && cd Enzyme/build \
 
 RUN python3 -m venv eval-env
 
+# Activate the Python virtual environment
 ENV PATH="$HOME/eval-env/bin:$PATH"
 
 COPY . $HOME
 
-RUN pip install -r requirements.txt \
-  && pip install -e ./ninjawrap
+RUN pip install numpy==1.26.4 pandas==2.2.2 matplotlib==3.9.1.post1
+RUN pip install -e ./ninjawrap
 
 # Build benchmarks
 RUN mkdir build && python main.py && ninja -C build

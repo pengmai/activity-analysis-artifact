@@ -47,6 +47,7 @@ def configure_lulesh(
         use_mlir=True,
         dataflow=dataflow,
         relative=not whole_program,
+        force_intraproc=whole_program,
         dce_func=dce_func,
         dce_indices=dce_indices,
     )
