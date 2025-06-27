@@ -277,7 +277,7 @@ enzymemlir-opt <file.mlir> --print-activity-analysis='funcs=caller relative anno
 ```
 
 Which should yield the following output:
-```
+```mlir
 #distinct = distinct[0]<#enzyme.pseudoclass<@callee(1, 0)>>
 #distinct1 = distinct[1]<#enzyme.pseudoclass<@caller(2, 0)>>
 module {
