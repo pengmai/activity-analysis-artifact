@@ -4,13 +4,13 @@ import pandas as pd
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
-from tqdm import tqdm
 
+import argparse
 import pathlib
 import subprocess
 import re
 
-from plotting import get_colormap, plot_precision
+from plotting import plot_precision
 
 BENCH_BUILD_DIR = pathlib.Path(HOME) / "build"
 gpu_ir_files = {
@@ -90,11 +90,8 @@ def get_precision(llvm_file: str):
     return float(m.group(1))
 
 
-def collect_precisions_for_dict(ir_files_dict, show_progress=False):
+def collect_precisions_for_dict(ir_files_dict):
     items = ir_files_dict.items()
-    if show_progress:
-        items = tqdm(items)
-
     return {
         bench: {
             variant: get_precision(BENCH_BUILD_DIR / llvm_file)
@@ -105,18 +102,17 @@ def collect_precisions_for_dict(ir_files_dict, show_progress=False):
 
 
 def main(args):
-    gpu_precision_results = pd.DataFrame(
-        collect_precisions_for_dict(gpu_ir_files, show_progress=args.show_progress)
-    ).T
-    cpu_precision_results = pd.DataFrame(
-        collect_precisions_for_dict(cpu_ir_files, show_progress=args.show_progress)
-    ).T
-    plot_precision(
-        cpu_precision_results, gpu_precision_results, "activity_precision.pdf"
-    )
+    gpu_precision_results = pd.DataFrame(collect_precisions_for_dict(gpu_ir_files)).T
+    cpu_precision_results = pd.DataFrame(collect_precisions_for_dict(cpu_ir_files)).T
+    plot_precision(cpu_precision_results, gpu_precision_results, args.output)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--show-progress", action="store_true")
+    parser.add_argument(
+        "--output",
+        "-o",
+        default="precision.pdf",
+        help="The location to save the generated plot.",
+    )
     main(parser.parse_args())
