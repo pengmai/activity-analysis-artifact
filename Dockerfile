@@ -43,7 +43,7 @@ ENV PATH="$HOME/eval-env/bin:$PATH"
 
 COPY . $HOME
 
-RUN pip install numpy==1.26.4 pandas==2.2.2 matplotlib==3.9.1.post1
+RUN pip install numpy==1.26.4 scipy==1.14.1 pandas==2.2.2 matplotlib==3.9.1.post1
 RUN pip install -e ./ninjawrap
 
 # Build benchmarks

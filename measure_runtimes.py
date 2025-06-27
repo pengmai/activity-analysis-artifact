@@ -2,9 +2,11 @@ from ninjawrap.gen_build import HOME
 
 import pandas as pd
 import numpy as np
+import scipy.stats as st
 import matplotlib
 import matplotlib.pyplot as plt
 
+import argparse
 import json
 import re
 import subprocess
@@ -12,9 +14,10 @@ import subprocess
 from plotting import plot_speedups
 
 BENCH_BUILD_DIR = HOME / "build"
-RESULTS_FILE = "runtimes.tsv"
 GPU_BENCHMARKS = ["XSBench", "LULESH", "RSBench", "LBM"]
 CPU_BENCHMARKS = ["Hand", "BUDE", "BA", "GMM", "LSTM"]
+ALL_BENCHMARKS = GPU_BENCHMARKS + CPU_BENCHMARKS
+VARIANTS = ["all_active", "informal", "whole_program", "relative", "gdce"]
 
 gpu_runflags = {
     "XSBench": (["-m", "event", "-k", "0", "-l", "17000000"], "Runtime"),
@@ -55,14 +58,11 @@ cpu_runflags = {
     "LSTM": [HOME / "cpu" / "lstm" / "data" / "lstm_l4_c4096.txt"],
 }
 
-all_benchmarks = list(gpu_runflags.keys() | cpu_runflags.keys())
-VARIANTS = ["all_active", "informal", "whole_program", "relative", "gdce"]
-
 
 def get_runtime_dataframe(result_file):
     def make_dataframe():
         columns = [f"run{i+1}" for i in range(6)]
-        idx = pd.MultiIndex.from_product((all_benchmarks, VARIANTS))
+        idx = pd.MultiIndex.from_product((ALL_BENCHMARKS, VARIANTS))
         df = pd.DataFrame(
             data=np.zeros((len(idx), len(columns))), columns=columns, index=idx
         )
@@ -75,7 +75,7 @@ def get_runtime_dataframe(result_file):
 
 
 # Map the lowercase benchmark names to the capitalized benchmark names.
-capitalized = {key.lower(): key for key in all_benchmarks}
+capitalized = {key.lower(): key for key in ALL_BENCHMARKS}
 
 
 def collect_cpu(bench, key):
@@ -101,7 +101,7 @@ def collect_gpu(bench, key):
 
 
 def collect_all(df: pd.DataFrame, args):
-    for benchmark in all_benchmarks:
+    for benchmark in ALL_BENCHMARKS:
         lbench = benchmark.lower()
         if args.benchmark != "all" and args.benchmark != lbench:
             continue
@@ -144,13 +144,16 @@ def prepare_speedups(runtimes: pd.DataFrame):
     return cpu_results, gpu_results
 
 
-import argparse
-
-
 def main(args):
     runtimes = get_runtime_dataframe(args.result_file)
     collect_all(runtimes, args)
     cpu_results, gpu_results = prepare_speedups(runtimes)
+    if args.print_speedups:
+        print(cpu_results)
+        print(gpu_results)
+        print(
+            f"CPU Geomean: {st.gmean(cpu_results['Func. Summaries'])} GPU Geomean: {st.gmean(gpu_results['Func. Summaries'])}"
+        )
     plot_speedups(cpu_results, gpu_results, args.output)
 
 
@@ -158,7 +161,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "benchmark",
-        choices=["all", "plot-only"] + [b.lower() for b in all_benchmarks],
+        choices=["all", "plot-only"] + [b.lower() for b in ALL_BENCHMARKS],
         help="Which benchmarks to run. 'all' will run all available benchmarks, while 'plot-only' will run none and instead just generate plots using the saved results.",
     )
     parser.add_argument(
@@ -176,5 +179,10 @@ if __name__ == "__main__":
         "-o",
         default="runtimes.pdf",
         help="The location to save the generated plot.",
+    )
+    parser.add_argument(
+        "--print-speedups",
+        action="store_true",
+        help="Print the speedup dataframe and geometric means. These results are only meaningful if all benchmarks have been run.",
     )
     main(parser.parse_args())

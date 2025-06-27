@@ -7,7 +7,7 @@ This artifact supports the experimental evaluation of the whole-program and modu
 Claims:
 - Activity analysis improves performance of differentiated code compared to not using activity analysis.
   - We observe a geometric mean speedup of 1.24x (up to 2x) on CPU and geomean 1.7x (up to 3x) on GPU
-- The modular activity analysis is just as precise as the whole-program activity analysis.
+- The modular activity analysis is just as precise as the whole-program activity analysis. Furthermore, both the modular and whole-program analyses find as many or more inactive instructions than Enzyme's informal analysis.
 - Running constant propagation and dead code elimination after differentiation is unable to recover the performance benefit of activity analysis.
 
 All claims are supported by this artifact.
@@ -190,17 +190,25 @@ The resulting plot can then be copied out the docker container for easier viewin
 docker cp activity-ubuntu:/home/evaluator/precision.pdf .
 ```
 
-#### Interpretation
+#### Interpretation (Section 8.2)
 
 The precision plot should be *exactly identical* to Figure 11 in the paper, modulo the result for LBM as noted below.
-The key claims are that the modular analysis (Func. Summaries) finds the same number of inactive instructions as the whole-program variant, and that both variants find the same or slightly more inactive instructions than the prior informal analysis.
 
 > [!NOTE]
 > Due to a mistake in the submitted version, the LBM benchmark precision should be 32%, not 23%, for all analysis variants. However, the claim that all three analyses produce the same number of inactive instructions for this benchmark is unchanged.
 
-### Run-time performance
+> Claim: The modular activity analysis is just as precise as the whole-program activity analysis. Furthermore, both the modular and whole-program analyses find as many or more inactive instructions than Enzyme's informal analysis.
 
-The `measure_runtimes.py` script can be used
+The Whole Program and Func. Summaries should find exactly the same number of inactive instructions for all benchmarks.
+For all benchmarks, both analyses should find equally many or more inactive instructions than the Informal analysis.
+
+### Run-time performance (Section 8.3)
+
+The `measure_runtimes.py` script can be used to run all or specific benchmarks and variants.
+The script merely invokes the given compiled benchmark with appropriate arguments, parses the reported kernel execution time, and serializes the results.
+
+After each benchmark/variant, intermediate runtimes are saved to a TSV file (`runtimes.tsv` by default), and Figure 12 from the paper is produced (`runtimes.pdf` by default).
+Both the TSV file and plot location can be overwritten via the CLI.
 
 ```sh
 # Run all benchmarks and variants
@@ -215,4 +223,56 @@ python measure_runtimes.py rsbench --variant all_active
 
 Running all benchmarks and variants should take approximately 15-20 minutes.
 
+#### Interpretation
+
+> Claim: Activity analysis improves performance of differentiated code compared to not using activity analysis.
+
+Results will vary depending on the specific hardware and machine noise.
+- The resulting speedup plot should show significant speedups for the Hand (2x), BUDE (1.2x), XSBench (3x), LULESH (2x), and RSBench (1.2x) benchmarks, as well as a modest speedup (1.1x) for the GMM benchmark for the three activity analysis variants.
+- The relative performance of the three activity analyses should be approximately the same.
+- The use of activity analysis should never harm performance relative to the baseline.
+
+> Claim: Running constant propagation and dead code elimination after differentiation is unable to recover the performance benefit of activity analysis.
+
+With the exception of GMM, the `No Activity + gDCE` variant should not improve performance relative to the baseline.
+
 ## Reusability Guide
+
+The two activity analyses of this work are implemented as data-flow analyses using the MLIR data-flow framework.
+- The whole-program analysis is implemented in `~/Enzyme/enzyme/Enzyme/MLIR/Analysis/DataFlowActivityAnalysis.{h,cpp}`
+- The modular analysis is implemented in `~/Enzyme/enzyme/Enzyme/MLIR/Analysis/ActivityAnnotations.{h,cpp}`
+
+Both analyses are accessible via the `print-activity-analysis` pass in `enzymemlir-opt`, which includes several flags to configure the behaviour of which analysis is used.
+
+### Running the analyses on new MLIR modules
+
+`enzymemlir-opt` is available by default at `~/Enzyme/build/Enzyme/MLIR/enzymemlir-opt`.
+
+TODO
+
+### Extending the analyses to new dialects and operations
+
+The analyses are implemented on both built-in and differentiation-specific [interfaces](https://mlir.llvm.org/docs/Interfaces/), and thus work as-is on arbitrary operations that correctly implement these interfaces.
+
+The standard MLIR interfaces are as follows:
+* Operations that implement functions and function calls should implement the respective `FunctionOpInterface` and `CallOpInterface`
+* Operations that implement control flow should implement `BranchOpInterface` and `RegionBranchOpInterface` as appropriate
+* All operations should implement `MemoryEffectOpInterface`. This interface describes operations that allocate, read, and write to memory, all of which are used by the analyses.
+  * Crucially, operations that do not touch memory should be marked `Pure` or `NoMemoryEffect`.
+
+The differentiation-specific interface that must be implemented is the `ActivityOpInterface`, which specifies when operations are either completely inactive (meaning there is no differential data dependency from any input to any output), or specific arguments are inactive (meaning there is no differential data dependency between that argument and any result).
+All other results are conservatively assumed to be differentially dependent on all operands.
+
+[The following example from Enzyme](https://github.com/EnzymeAD/Enzyme/blob/89c0071f1dc3f5b7312f48c3d780ef99ce078e2b/enzyme/Enzyme/MLIR/Implementations/LLVMAutoDiffOpInterfaceImpl.cpp#L29) shows how to express that a `cpuid`/`exit` inline assembly operation is inactive:
+```cpp
+struct InlineAsmActivityInterface
+    : public ActivityOpInterface::ExternalModel<InlineAsmActivityInterface,
+                                                LLVM::InlineAsmOp> {
+  bool isInactive(Operation *op) const {
+    auto asmOp = cast<LLVM::InlineAsmOp>(op);
+    auto str = asmOp.getAsmString();
+    return str.contains("cpuid") || str.contains("exit");
+  }
+  bool isArgInactive(Operation *op, size_t) const { return isInactive(op); }
+};
+```
