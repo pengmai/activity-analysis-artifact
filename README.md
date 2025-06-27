@@ -75,7 +75,8 @@ docker build -t activity-artifact .
 > [!NOTE]
 > If you run into permission issues, run the docker commands with `sudo` or add the current user to the [`docker` group](https://docs.docker.com/engine/install/linux-postinstall/).
 
-Building the image for the first time will compile LLVM from source, which can take significant time. The AMD Ryzen 5 takes about 40 minutes to complete this process.
+> [!WARNING]
+> Building the image for the first time will compile LLVM from source, which can take significant time. The AMD Ryzen 5 takes about 40 minutes to complete this process.
 
 This process will also compile Enzyme and the benchmarks, which includes running the activity analyses.
 
