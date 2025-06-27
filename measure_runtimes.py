@@ -148,7 +148,7 @@ def main(args):
     runtimes = get_runtime_dataframe(args.result_file)
     collect_all(runtimes, args)
     cpu_results, gpu_results = prepare_speedups(runtimes)
-    if args.print_speedups:
+    if args.print:
         print(cpu_results)
         print(gpu_results)
         print(
@@ -181,7 +181,7 @@ if __name__ == "__main__":
         help="The location to save the generated plot.",
     )
     parser.add_argument(
-        "--print-speedups",
+        "--print",
         action="store_true",
         help="Print the speedup dataframe and geometric means. These results are only meaningful if all benchmarks have been run.",
     )

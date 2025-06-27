@@ -104,6 +104,8 @@ def collect_precisions_for_dict(ir_files_dict):
 def main(args):
     gpu_precision_results = pd.DataFrame(collect_precisions_for_dict(gpu_ir_files)).T
     cpu_precision_results = pd.DataFrame(collect_precisions_for_dict(cpu_ir_files)).T
+    if args.print:
+        print(pd.concat((gpu_precision_results, cpu_precision_results)))
     plot_precision(cpu_precision_results, gpu_precision_results, args.output)
 
 
@@ -114,5 +116,8 @@ if __name__ == "__main__":
         "-o",
         default="precision.pdf",
         help="The location to save the generated plot.",
+    )
+    parser.add_argument(
+        "--print", action="store_true", help="Print the precisions to stdout."
     )
     main(parser.parse_args())

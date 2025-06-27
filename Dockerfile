@@ -29,7 +29,7 @@ RUN mkdir llvm-project/build && cd llvm-project/build \
 # Build Enzyme
 RUN git clone https://github.com/EnzymeAD/Enzyme.git \
   && cd Enzyme \
-  && git checkout a8a8dac
+  && git checkout a7ed5a5
 
 RUN mkdir Enzyme/build && cd Enzyme/build \
   && cmake ../enzyme -G Ninja -DLLVM_DIR=$HOME/llvm-project/build/lib/cmake/llvm -DENZYME_MLIR=ON \
@@ -49,6 +49,6 @@ RUN pip install -e ./ninjawrap
 # Build benchmarks
 RUN mkdir build && python build_benchmarks.py && ninja -C build
 # LULESH and LBM write their outputs to files. The enclosing directories must be owned by the user.
-RUN chown $USERNAME -R cpu gpu build .cache && chown $USERNAME .
+RUN chown $USERNAME -R cpu gpu build Enzyme .cache && chown $USERNAME .
 
 USER $USERNAME

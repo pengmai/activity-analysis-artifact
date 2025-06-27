@@ -12,20 +12,6 @@ from gpu.xsbench.build import configure_xsbench
 from ninjawrap import NWrapWriter
 
 
-def collect_cpu_runtimes():
-    """"""
-    # Bude: ./build/all_active/bude -n 4096 --deck cpu/bude/data/bm1
-    pass
-
-
-def collect_gpu_runtimes():
-    # LBM: -i datasets/lbm/short/input/120_120_150_ldc.of -o ref.dat -- 150 | grep "Kernel    "
-    # LULESH: -s 60
-    # RSBench: -m event -l 10200 | grep Runtime
-    # XSBench: ./build/all_active/xsbench -m event -k 0 -l 17000000 | grep Runtime
-    pass
-
-
 def build_all():
     with open("build/build.ninja", "w") as f:
         writer = NWrapWriter(f)
