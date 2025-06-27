@@ -1,5 +1,7 @@
 # Artifact for "Sound and Modular Activity Analysis for Automatic Differentiation in MLIR"
 
+[For best results, view this README on Github.](https://github.com/pengmai/activity-analysis-artifact)
+
 ## Introduction
 
 This artifact supports the experimental evaluation of the whole-program and modular activity analyses in the paper.
