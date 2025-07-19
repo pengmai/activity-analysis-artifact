@@ -78,26 +78,39 @@ def get_runtime_dataframe(result_file):
 capitalized = {key.lower(): key for key in ALL_BENCHMARKS}
 
 
-def collect_cpu(bench, key):
+def collect_cpu(bench, key, args):
     flags = cpu_runflags[key]
+    if args.verbose:
+        all_flags = [str(s) for s in [bench] + flags]
+        print(" ".join(all_flags))
     bench_ps = subprocess.run([bench] + flags, capture_output=True)
     return json.loads(bench_ps.stdout.decode("utf-8"))
 
 
-def run_gpu_benchmark(bench, key):
+def run_gpu_benchmark(bench, key, args):
     flags, timestr = gpu_runflags[key]
+    if args.verbose:
+        all_flags = [str(s) for s in [bench] + flags]
+        print(" ".join(all_flags))
     bench_ps = subprocess.run([bench] + flags, capture_output=True)
-    grep_ps = subprocess.run(
-        ["grep", timestr], input=bench_ps.stdout, check=True, capture_output=True
-    )
+    try:
+        grep_ps = subprocess.run(
+            ["grep", timestr], input=bench_ps.stdout, check=True, capture_output=True
+        )
+    except subprocess.CalledProcessError as e:
+        print(bench_ps.stdout.decode("utf-8"))
+        print(bench_ps.stderr.decode("utf-8"))
+        print("Parsing run time failed")
+        return 0
+
     # Extract the elapsed kernel time as reported by the benchmark
     m = re.match(r".+[:=]\s+([\d.]+).*", grep_ps.stdout.decode("utf-8"))
     elapsed = float(m.group(1))
     return elapsed
 
 
-def collect_gpu(bench, key):
-    return [run_gpu_benchmark(bench, key) for _ in range(6)]
+def collect_gpu(bench, key, args):
+    return [run_gpu_benchmark(bench, key, args) for _ in range(6)]
 
 
 def collect_all(df: pd.DataFrame, args):
@@ -118,9 +131,9 @@ def collect_all(df: pd.DataFrame, args):
             print(f"Collecting {benchmark} variant {variant}")
             bench_bin = BENCH_BUILD_DIR / variant / lbench / lbench
             if gpu_benchmark:
-                results = collect_gpu(bench_bin, bench_key)
+                results = collect_gpu(bench_bin, bench_key, args)
             else:
-                results = collect_cpu(bench_bin, bench_key)
+                results = collect_cpu(bench_bin, bench_key, args)
 
             df.loc[benchmark, variant] = results
             df.to_csv(args.result_file, sep="\t")
@@ -185,4 +198,5 @@ if __name__ == "__main__":
         action="store_true",
         help="Print the speedup dataframe and geometric means. These results are only meaningful if all benchmarks have been run.",
     )
+    parser.add_argument("--verbose", action="store_true")
     main(parser.parse_args())
