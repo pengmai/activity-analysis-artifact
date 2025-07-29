@@ -148,3 +148,61 @@ def plot_speedups(cpu_results, gpu_results, output: str):
     )
     fig.tight_layout()
     plt.savefig(output, bbox_inches="tight")
+
+
+def plot_c_speedup(df, ax, yticks, cmap):
+    xs = np.arange(df.shape[0]) * df.shape[1]
+    ones = np.ones(df.shape[0])
+    width = 0.3
+    for i, c in enumerate(df.columns):
+        ax.bar(
+            xs + width * float(i),
+            df[c] - ones,
+            width=width,
+            bottom=ones,
+            zorder=3,
+            edgecolor="#444",
+            label=c,
+            color=cmap(i + 2),
+        )
+
+    plot_baseline_in_front = True
+    ax.plot(
+        [-1, xs[-1] + 3],
+        [1.0] * 2,
+        color=cmap(1),
+        linewidth=2.5,
+        zorder=3 if plot_baseline_in_front else 2,
+        label="Whole Program",
+    )
+    # ax.legend(framealpha=1.0)
+    ax.grid(axis="y", zorder=1)
+    ax.set_xticks(xs + width * ((df.shape[1] - 1) / 2.0), df.index)
+    ax.set_xlim(-width, df.shape[0] * df.shape[1] - 1 + width)
+
+    ax.set_yscale("log")
+    ax.minorticks_off()
+    ax.yaxis.set_major_formatter(matplotlib.ticker.ScalarFormatter())
+    ax.set_yticks(yticks)
+
+
+def plot_compile_times(cpu_compile_speedups, gpu_compile_speedups, output: str):
+    cmap = get_colormap()
+    (fig, (ax1, ax2)) = plt.subplots(ncols=2, width_ratios=[0.55, 0.45])
+    ax1.set_ylabel("Compile Time Speedup\n(log scale)")
+    ax1.set_title("CPU")
+    ax2.set_title("GPU")
+    fig.set_size_inches(9, 2.2)
+    plot_c_speedup(cpu_compile_speedups, ax1, [0.25, 0.5, 1.0, 2.0, 4.0, 8.0, 16.0], cmap)
+    plot_c_speedup(gpu_compile_speedups, ax2, [0.25, 0.5, 1.0, 2.0, 4.0, 8.0, 16.0], cmap)
+    handles, labels = ax1.get_legend_handles_labels()
+    fig.legend(
+        handles,
+        labels,
+        loc="lower center",
+        bbox_to_anchor=(0.5, -0.07),
+        ncols=3,
+        frameon=False,
+    )
+    fig.tight_layout()
+    plt.savefig(output, bbox_inches="tight")

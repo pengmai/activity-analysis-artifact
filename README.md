@@ -11,13 +11,9 @@ Claims:
   - We observe a geometric mean speedup of 1.24x (up to 2x) on CPU and geomean 1.7x (up to 3x) on GPU
 - The modular activity analysis is just as precise as the whole-program activity analysis. Furthermore, both the modular and whole-program analyses find as many or more inactive instructions than Enzyme's informal analysis.
 - Running constant propagation and dead code elimination after differentiation is unable to recover the performance benefit of activity analysis.
+- Modular activity analysis achieves a compile time speedup of up to 6-10x on the GPU benchmarks.
 
 All claims are supported by this artifact.
-
-## Planned Changes
-
-In response to reviewers, the revision will include an additional experiment that compares the compile/analysis times of the whole-program and modular activity analyses.
-A Python script will be added that automates the measuring and plotting of this experiment, but nothing else in the artifact will change.
 
 ## Hardware Dependencies
 
@@ -166,11 +162,12 @@ Subsequent runs of the same benchmark/variant will overwrite previous results.
 
 ## Step by Step Instructions
 
-There are two main Python scripts that reproduce experiments:
+There are three main Python scripts that reproduce experiments:
 * `measure_precision.py` produces Figure 11 by measuring the number of inactive instructions for each benchmark.
 * `measure_runtimes.py` produces Figure 12 by measuring the execution time of the differentiated benchmark for the five variants examined in this work.
+* `measure_compile_times.py` produces Figure 13 by measuring the compile time of the whole program and function summary activity analyses in this work.
 
-Both scripts can be run with `python measure_<...> --help` to see a full list of available arguments.
+All scripts can be run with `python measure_<...> --help` to see a full list of available arguments.
 
 The five variants are as follows:
 1. `all_active`: the baseline differentiated code that is run without activity analysis.
@@ -242,6 +239,42 @@ Results will vary depending on the specific hardware and machine noise.
 > Claim: Running constant propagation and dead code elimination after differentiation is unable to recover the performance benefit of activity analysis.
 
 With the exception of the slight speedup for GMM, the `No Activity + gDCE` variant should not improve performance relative to the baseline.
+
+### Compile Time Performance (Section 8.4)
+
+The `measure_compile_times.py` script takes similar arguments to `measure_runtimes.py`.
+
+```sh
+# Run whole program and modular activity analysis for all benchmarks
+python measure_compile_times.py all
+
+# Run no analyses, just generate plots
+python measure_compile_times.py plot-only --print
+```
+
+Running all benchmarks should take under 2 minutes.
+
+#### Interpretation
+
+> Claim: Modular activity analysis achieves a compile time speedup of up to 6-10x on the GPU benchmarks.
+
+Results will again vary depending on the specific hardware and machine noise.
+- The resulting speedup plot should show significant (6-10x) compile time speedups for the GPU benchmarks, and up to 2.8x slowdowns (meaning a speedup of about 0.36) for the CPU benchmark BUDE.
+
+Example speedups on the AMD Ryzen 5 using `python measure_compile_times.py all --print` command are the following:
+```
+      Func. Summaries
+Hand         0.743938
+BUDE         0.369049
+BA           1.277164
+GMM          0.693975
+LSTM         0.671230
+         Func. Summaries
+XSBench         6.653266
+LULESH         10.407521
+RSBench         7.250446
+LBM            10.601501
+```
 
 ## Reusability Guide
 
