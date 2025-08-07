@@ -41,9 +41,9 @@ RUN python3 -m venv eval-env
 # Activate the Python virtual environment
 ENV PATH="$HOME/eval-env/bin:$PATH"
 
-COPY . $HOME
-
 RUN pip install numpy==1.26.4 scipy==1.14.1 pandas==2.2.2 matplotlib==3.9.1.post1
+
+COPY . $HOME
 RUN pip install -e ./ninjawrap
 
 # Build benchmarks

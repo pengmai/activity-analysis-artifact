@@ -42,8 +42,8 @@ def configure_xsbench(
         "_Z18calculate_macro_xsdillPiPdS0_S_P16NuclideGridPointS_S0_iii",
         "_Z25xs_lookup_kernel_baseline6Inputs14SimulationData",
     ]
-    dce_func = "diffe" + public_symbols[0] if custom_dce else None
-    dce_indices = "6,8" if custom_dce else None
+    dce_func = "diffe" + public_symbols[0] if custom_dce or all_active else None
+    dce_indices = "6,8" if custom_dce or all_active else None
 
     kernel_objs = writer.compile_cuda_llvm(
         inputs,
